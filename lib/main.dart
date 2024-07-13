@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:my_diet_plan/profiletab.dart';
+
+import 'activitytab.dart';
+import 'dietplantab.dart';
+import 'hometab.dart';
 
 void main() {
   runApp(MyApp());
@@ -62,33 +67,5 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ],
       ),
     );
-  }
-}
-
-class HomeTab extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('Welcome to your personalized diet plan app!'));
-  }
-}
-
-class ProfileTab extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('Profile Screen'));
-  }
-}
-
-class DietPlanTab extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('Diet Plan Screen'));
-  }
-}
-
-class ActivityTab extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('Activity Screen'));
   }
 }
