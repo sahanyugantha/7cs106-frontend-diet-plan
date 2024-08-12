@@ -208,8 +208,8 @@ class _HomeTabState extends State<HomeTab> {
                 ),
                 SizedBox(height: 20),
 
-                //WaterGlass(waterConsumedPercentage: waterConsumed / (waterConsumed + waterLeft)),
-                WaterGlassIndicator(waterConsumedPercentage: 0.52),
+                WaterGlassIndicator(waterConsumedPercentage: waterConsumed / (waterConsumed + waterLeft)),
+                //WaterGlassIndicator(waterConsumedPercentage: 0.52),
 
                 SizedBox(height: 10),
                 // Detailed Statistics
