@@ -4,7 +4,16 @@ import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:my_diet_plan/Config.dart';
 
-class HomeTab extends StatelessWidget {
+import 'WaterGlassIndicator.dart';
+
+class HomeTab extends StatefulWidget {
+  @override
+  _HomeTabState createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> {
+  int? _touchedIndex;
+
   Future<Map<String, dynamic>> fetchRecommendations() async {
     final response = await http.get(Uri.parse('${Config.baseUrl}/api/v1/users/1/recommendations'));
 
@@ -31,7 +40,7 @@ class HomeTab extends StatelessWidget {
     return Scaffold(
       // appBar: AppBar(
       //   title: Text('Home'),
-      //   backgroundColor: Colors.greenAccent,
+      //   backgroundColor: Colors.blueAccent,
       // ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: fetchRecommendations(),
@@ -46,9 +55,10 @@ class HomeTab extends StatelessWidget {
             final data = snapshot.data!;
             final username = data['username'];
             final caloriesConsumed = data['caloriesConsumed'] / 1000;
-            final caloriesLeft = data['caloriesLeft'] / 1000;
+            final caloriesNeeded = data['caloriesLeft'] / 1000;
             final waterConsumed = data['waterConsumed'];
             final waterLeft = data['waterLeft'];
+            //final waterConsumedPercentage = waterConsumed / (waterConsumed + waterLeft);
 
             return ListView(
               padding: const EdgeInsets.all(16.0),
@@ -59,6 +69,14 @@ class HomeTab extends StatelessWidget {
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 20),
+
+                // Title for the Pie Chart
+                Text(
+                  'Daily Caloric Breakdown',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 10),
 
                 // Pie Chart for Calories
                 AspectRatio(
@@ -76,50 +94,124 @@ class HomeTab extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: PieChart(
-                      PieChartData(
-                        sections: [
-                          PieChartSectionData(
-                            value: caloriesConsumed.toDouble(),
-                            title: '${caloriesConsumed.toStringAsFixed(2)} kcal',
-                            radius: 80,
-                            titleStyle: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                            gradient: LinearGradient(
-                              colors: [Colors.green, Colors.cyan],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                    child: Stack(
+                      children: [
+                        PieChart(
+                          PieChartData(
+                            sections: [
+                              PieChartSectionData(
+                                value: caloriesConsumed.toDouble(),
+                                title: '${caloriesConsumed.toStringAsFixed(2)} kcal',
+                                radius: 80,
+                                titleStyle: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                gradient: LinearGradient(
+                                  colors: [Colors.blue, Colors.cyan],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                              PieChartSectionData(
+                                value: caloriesNeeded.toDouble(),
+                                title: '${caloriesNeeded.toStringAsFixed(2)} kcal',
+                                radius: 80,
+                                titleStyle: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                gradient: LinearGradient(
+                                  colors: [Colors.red, Colors.orange],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                            ],
+                            borderData: FlBorderData(show: false),
+                            sectionsSpace: 0,
+                            centerSpaceRadius: 60,
+                            startDegreeOffset: 270,
+                            pieTouchData: PieTouchData(
+                              touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                                if (pieTouchResponse != null && pieTouchResponse.touchedSection != null) {
+                                  setState(() {
+                                    _touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                                  });
+                                } else {
+                                  setState(() {
+                                    _touchedIndex = -1;
+                                  });
+                                }
+                              },
                             ),
                           ),
-                          PieChartSectionData(
-                            value: caloriesLeft.toDouble(),
-                            title: '${caloriesLeft.toStringAsFixed(2)} kcal',
-                            radius: 80,
-                            titleStyle: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                            gradient: LinearGradient(
-                              colors: [Colors.red, Colors.orange],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                        ),
+                        if (_touchedIndex != null && _touchedIndex != -1)
+                          Positioned.fill(
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: AnimatedOpacity(
+                                opacity: 1.0,
+                                duration: Duration(milliseconds: 200),
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    _touchedIndex == 0
+                                        ? '${caloriesConsumed.toStringAsFixed(2)} kcal'
+                                        : '${caloriesNeeded.toStringAsFixed(2)} kcal',
+                                    style: TextStyle(color: Colors.white, fontSize: 16),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ],
-                        borderData: FlBorderData(show: false),
-                        sectionsSpace: 0,
-                        centerSpaceRadius: 60,
-                        startDegreeOffset: 270,
-                      ),
+                      ],
                     ),
                   ),
                 ),
+                SizedBox(height: 10),
+
+                // Legend for the Pie Chart
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 16,
+                          height: 16,
+                          color: Colors.blue,
+                        ),
+                        SizedBox(width: 5),
+                        Text('Calories Consumed'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 16,
+                          height: 16,
+                          color: Colors.red,
+                        ),
+                        SizedBox(width: 5),
+                        Text('Remaining Calories'),
+                      ],
+                    ),
+                  ],
+                ),
                 SizedBox(height: 20),
 
+                //WaterGlass(waterConsumedPercentage: waterConsumed / (waterConsumed + waterLeft)),
+                WaterGlassIndicator(waterConsumedPercentage: 0.52),
+
+                SizedBox(height: 10),
                 // Detailed Statistics
                 Card(
                   elevation: 4,
@@ -132,8 +224,8 @@ class HomeTab extends StatelessWidget {
                         Text('Calories Consumed:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         Text('${caloriesConsumed.toStringAsFixed(2)} kcal', style: TextStyle(fontSize: 24)),
                         SizedBox(height: 10),
-                        Text('Calories Needed:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text('${caloriesLeft.toStringAsFixed(2)} kcal', style: TextStyle(fontSize: 24)),
+                        Text('Remaining Calories:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text('${caloriesNeeded.toStringAsFixed(2)} kcal', style: TextStyle(fontSize: 24)),
                         SizedBox(height: 10),
                         Text('Water Consumed:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         Text('${waterConsumed} liters', style: TextStyle(fontSize: 24)),
