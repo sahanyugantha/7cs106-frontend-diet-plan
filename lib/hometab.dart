@@ -90,8 +90,8 @@ class _HomeTabState extends State<HomeTab> {
               print("Error");
             }
 
-            //double bmi = calculateBMI(weight, height);
-            double bmi = 15;
+            double bmi = calculateBMI(weight, height);
+            //double bmi = 15;
             String bmiCategory = determineBMICategory(bmi);
             //final waterConsumedPercentage = waterConsumed / (waterConsumed + waterLeft);
 

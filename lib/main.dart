@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:my_diet_plan/profiletab.dart';
-
-import 'activitytab.dart';
-import 'dietplantab.dart';
-import 'hometab.dart';
+import 'package:my_diet_plan/activitytab.dart';
+import 'package:my_diet_plan/dietplantab.dart';
+import 'package:my_diet_plan/hometab.dart';
+import 'package:my_diet_plan/custom_drawer.dart'; // Import the custom drawer
 
 void main() {
   runApp(MyApp());
@@ -57,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ],
         ),
       ),
+      drawer: CustomDrawer(), // Add the custom drawer here
       body: TabBarView(
         controller: _tabController,
         children: [
