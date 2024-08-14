@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:my_diet_plan/Config.dart';
+import 'package:syncfusion_flutter_gauges/gauges.dart';
+
 
 import 'WaterGlassIndicator.dart';
 
@@ -35,6 +37,23 @@ class _HomeTabState extends State<HomeTab> {
     }
   }
 
+  double calculateBMI(double weight, double height) {
+    double heightInMeters = height/100;
+    return weight / (heightInMeters * heightInMeters);
+  }
+
+  String determineBMICategory(double bmi) {
+    if (bmi < 18.5) {
+      return "Underweight";
+    } else if (bmi < 25) {
+      return "Normal weight";
+    } else if (bmi < 30) {
+      return "Overweight";
+    } else {
+      return "Obesity";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,6 +77,22 @@ class _HomeTabState extends State<HomeTab> {
             final caloriesNeeded = data['caloriesLeft'] / 1000;
             final waterConsumed = data['waterConsumed'];
             final waterLeft = data['waterLeft'];
+           // final weight = data['weight'];
+           // final height = data['height'];
+            final weight = data['weight']?.toDouble() ?? 0.0;
+            final height = data['height']?.toDouble() ?? 0.0;
+
+            // Validate height and weight
+            if (height > 0 && weight > 0) {
+              double bmi = calculateBMI(weight, height);
+              print(" BMI: $bmi");
+            } else {
+              print("Error");
+            }
+
+            //double bmi = calculateBMI(weight, height);
+            double bmi = 15;
+            String bmiCategory = determineBMICategory(bmi);
             //final waterConsumedPercentage = waterConsumed / (waterConsumed + waterLeft);
 
             return ListView(
@@ -232,6 +267,99 @@ class _HomeTabState extends State<HomeTab> {
                         SizedBox(height: 10),
                         Text('Water Left:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         Text('${waterLeft} liters', style: TextStyle(fontSize: 24)),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 20),
+
+                // BMI and Obesity Indicator with Gauge Chart
+                Card(
+                  elevation: 4,
+                  margin: EdgeInsets.symmetric(vertical: 10),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Your BMI', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 10),
+                        // Height and Weight Display
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Height: ${height.toStringAsFixed(2)} cm', style: TextStyle(fontSize: 16)),
+                            Text('Weight: ${weight.toStringAsFixed(1)} kg', style: TextStyle(fontSize: 16)),
+                          ],
+                        ),
+                        SizedBox(height: 20),
+                        // Gauge Chart for BMI
+                        SfRadialGauge(
+                          axes: <RadialAxis>[
+                            RadialAxis(
+                              minimum: 10,
+                              maximum: 40,
+                              ranges: <GaugeRange>[
+                                GaugeRange(startValue: 10, endValue: 18.5, color: Colors.blue),
+                                GaugeRange(startValue: 18.5, endValue: 25, color: Colors.green),
+                                GaugeRange(startValue: 25, endValue: 30, color: Colors.orange),
+                                GaugeRange(startValue: 30, endValue: 40, color: Colors.red),
+                              ],
+                              pointers: <GaugePointer>[
+                                NeedlePointer(value: bmi),
+                              ],
+                              annotations: <GaugeAnnotation>[
+                                GaugeAnnotation(
+                                  widget: Container(
+                                    child: Text(
+                                      'BMI: ${bmi.toStringAsFixed(1)}',
+                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  angle: 90,
+                                  positionFactor: 0.5,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Category: $bmiCategory',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: (bmi < 18.5 || bmi >= 25) ? Colors.red : Colors.green,
+                              ),
+                            ),
+                            SizedBox(height: 10),
+                            if (bmi < 18.5)
+                              Text(
+                                'You are in the underweight range. It\'s important to consult with a healthcare provider to ensure you\'re getting the right nutrition and maintaining a healthy lifestyle.',
+                                style: TextStyle(fontSize: 16, color: Colors.red),
+                              )
+                            else if (bmi < 25)
+                              Text(
+                                'You are in the normal weight range. Keep up the good work by maintaining a balanced diet and staying active.',
+                                style: TextStyle(fontSize: 16, color: Colors.green),
+                              )
+                            else if (bmi < 30)
+                                Text(
+                                  'You are in the overweight range. It may be beneficial to adopt healthier eating habits and increase physical activity to reduce your risk of health issues.',
+                                  style: TextStyle(fontSize: 16, color: Colors.orange),
+                                )
+                              else
+                                Text(
+                                  'You are in the obesity range, which can increase your risk for various health conditions. It\'s important to consult with a healthcare provider for a personalized plan.',
+                                  style: TextStyle(fontSize: 16, color: Colors.red),
+                                ),
+                          ],
+                        ),
+
                       ],
                     ),
                   ),
