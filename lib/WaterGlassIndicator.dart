@@ -1,6 +1,6 @@
-import 'package:liquid_progress_indicator_v2/liquid_progress_indicator.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
+import 'package:liquid_progress_indicator_v2/liquid_progress_indicator.dart';
 
 class WaterGlassIndicator extends StatelessWidget {
   final double waterConsumedPercentage;

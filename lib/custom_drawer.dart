@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 //import 'login_page.dart';
 //import 'registration_page.dart';
 //import 'user_settings_page.dart';
-
+// appBar: AppBar(
+//   title: Text('Home'),
+//   backgroundColor: Colors.blueAccent,
+// ),
 class CustomDrawer extends StatelessWidget {
   final dynamic userData; // Replace dynamic with your user model if needed
 
