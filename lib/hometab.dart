@@ -17,11 +17,6 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   int? _touchedIndex;
 
-  // Variables for food intake
-
-
-  // Variable for water intake
-  double waterIntake = 0;
 
   Future<Map<String, dynamic>> fetchRecommendations() async {
     final response = await http.get(Uri.parse('${Config.baseUrl}/api/v1/users/1/recommendations'));
@@ -80,14 +75,21 @@ class _HomeTabState extends State<HomeTab> {
             final waterGoal = data['waterGoal'];
             final caloriesConsumed = data['caloriesConsumed'] / 1000;
             final caloriesNeeded = data['caloriesLeft'] / 1000;
-            final waterConsumed = data['waterConsumed'];
-            final waterLeft = data['waterLeft'];
+            final waterConsumed = data['waterConsumed']?.toDouble() ?? 0.0;;
+            final waterLeft = data['waterLeft']?.toDouble() ?? 0.0;;
             final weight = data['weight']?.toDouble() ?? 0.0;
             final height = data['height']?.toDouble() ?? 0.0;
-            var breakfastCalories =data['breakfastCalories'] / 1000;
-            var lunchCalories =data['lunchCalories'] / 1000;
-            var dinnerCalories =data['dinnerCalories'] / 1000;
-            var otherCalories =data['otherCalories'] / 1000;
+            final breakfastCalories =data['breakfastCalories'] / 1000;
+            final lunchCalories =data['lunchCalories'] / 1000;
+            final dinnerCalories =data['dinnerCalories'] / 1000;
+            final otherCalories =data['otherCalories'] / 1000;
+
+            var tempBreakfastCal = 0.0;
+            var tempDinnerCal = 0.0;
+            var tempLunchCal = 0.0;
+            var tempOtherCal = 0.0;
+
+            var tempWaterConsumed = 0.0;
 
 
 
@@ -120,13 +122,12 @@ class _HomeTabState extends State<HomeTab> {
                           context,
                           label: 'Breakfast',
                           unit: ' kcal',
-                          intValue: 500.00,
                           value: breakfastCalories,
                           max: caloriesGoal,
                           gradientColors: [Colors.green, Colors.teal],
                           onChanged: (value) {
                             setState(() {
-                              breakfastCalories = value;
+                              tempBreakfastCal = value;
                             });
                           },
                         ),
@@ -136,13 +137,12 @@ class _HomeTabState extends State<HomeTab> {
                           context,
                           label: 'Lunch',
                           unit: ' kcal',
-                          intValue: lunchCalories,
                           value: lunchCalories,
                           max: caloriesGoal,
                           gradientColors: [Colors.orange, Colors.red],
                           onChanged: (value) {
                             setState(() {
-                              lunchCalories = value;
+                              tempLunchCal = value;
                             });
                           },
                         ),
@@ -152,13 +152,12 @@ class _HomeTabState extends State<HomeTab> {
                           context,
                           label: 'Dinner',
                           unit: ' kcal',
-                          intValue: 500.00,
                           value: dinnerCalories,
                           max: caloriesGoal,
                           gradientColors: [Colors.purple, Colors.pink],
                           onChanged: (value) {
                             setState(() {
-                              dinnerCalories = value;
+                              tempDinnerCal = value;
                             });
                           },
                         ),
@@ -168,13 +167,12 @@ class _HomeTabState extends State<HomeTab> {
                           context,
                           label: 'Other',
                           unit: ' kcal',
-                          intValue: 500.00,
                           value: otherCalories,
                           max: caloriesGoal,
                           gradientColors: [Colors.blue, Colors.indigo],
                           onChanged: (value) {
                             setState(() {
-                              otherCalories = value;
+                              tempOtherCal = value;
                             });
                           },
                         ),
@@ -194,13 +192,12 @@ class _HomeTabState extends State<HomeTab> {
                           context,
                           label: 'Water Intake (Liters)',
                           unit: ' L',
-                          intValue: 1.00,
-                          value: waterIntake,
+                          value: waterConsumed,
                           max: waterGoal,
                           gradientColors: [Colors.lightBlue, Colors.blue],
                           onChanged: (value) {
                             setState(() {
-                              waterIntake = value;
+                              tempWaterConsumed = value;
                             });
                           },
                         ),
@@ -503,7 +500,6 @@ class _HomeTabState extends State<HomeTab> {
       BuildContext context, {
         required String label,
         required String unit,
-        required double intValue,
         required double value,
         required double max,
         required List<Color> gradientColors,
