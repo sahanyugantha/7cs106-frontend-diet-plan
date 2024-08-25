@@ -230,6 +230,48 @@ class _HomeTabState extends State<HomeTab> {
     }
   }
 
+
+  Future<void> _saveDailyIntake() async {
+    final apiUrl = '${Config.baseUrl}/api/v1/daily-consumption/1/meal-calories';
+
+    final requestBody = json.encode({
+      'breakfastCalories': breakfastCalories,
+      'lunchCalories': lunchCalories,
+      'dinnerCalories': dinnerCalories,
+      'otherCalories': otherCalories,
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: requestBody,
+      );
+
+      print('CODE : ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        // Handle successful response
+        print('Daily intake saved successfully: $responseData');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Daily intake saved successfully!')),
+        );
+      } else {
+        throw Exception('Code : ${response.statusCode.toString()}. Failed to save daily intake');
+      }
+    } catch (e) {
+      print('Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save daily intake.')),
+      );
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
 
@@ -355,6 +397,24 @@ class _HomeTabState extends State<HomeTab> {
                         ElevatedButton(
                           onPressed: () => _showPhotoSourceDialog('other'),
                           child: Text('Add Other Photo'),
+                        ),
+
+                        SizedBox(height: 10),
+                        // Save Button
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Center(
+                            child: ElevatedButton(
+                              onPressed: _saveDailyIntake,
+                              child: Text('Save Daily Intake'),
+                              style: ElevatedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.blue, // Text color
+                                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
                         ),
 
                         SizedBox(height: 20),
