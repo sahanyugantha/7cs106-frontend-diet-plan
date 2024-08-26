@@ -34,6 +34,27 @@ class _HomeTabState extends State<HomeTab> {
 
   final picker = ImagePicker();
 
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      final recommendations = await fetchRecommendations();
+      setState(() {
+        breakfastCalories = recommendations['breakfastCalories']?.toDouble() ?? 0.0;
+        lunchCalories = recommendations['lunchCalories']?.toDouble() ?? 0.0;
+        dinnerCalories = recommendations['dinnerCalories']?.toDouble() ?? 0.0;
+        otherCalories = recommendations['otherCalories']?.toDouble() ?? 0.0;
+        waterConsumed = recommendations['waterConsumed']?.toDouble() ?? 0.0;
+      });
+    } catch (e) {
+      print('Error loading initial data: $e');
+    }
+  }
+
   Future<void> _pickImage(ImageSource source, String mealType) async {
     final pickedFile = await picker.pickImage(source: source);
     if (pickedFile != null) {
@@ -231,7 +252,7 @@ class _HomeTabState extends State<HomeTab> {
   }
 
 
-  Future<void> _saveDailyIntake() async {
+  Future<void> _saveDailyFoodIntake() async {
     final apiUrl = '${Config.baseUrl}/api/v1/daily-consumption/1/meal-calories';
 
     final requestBody = json.encode({
@@ -270,6 +291,38 @@ class _HomeTabState extends State<HomeTab> {
       );
     }
   }
+
+  Future<void> _saveDailyWaterIntake() async {
+    // Prepare the URL
+    final url = Uri.parse('${Config.baseUrl}/api/v1/daily-consumption/1/meal-calories');
+
+    // Prepare the request body
+    final requestBody = jsonEncode({
+      'waterIntake': waterConsumed,
+    });
+
+    try {
+      // Send the POST request
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: requestBody,
+      );
+
+      // Check if the request was successful
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('Water intake data saved successfully');
+      } else {
+        print('Failed to save water intake data. Status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
+      }
+    } catch (error) {
+      print('An error occurred: $error');
+    }
+  }
+
 
 
   @override
@@ -405,8 +458,8 @@ class _HomeTabState extends State<HomeTab> {
                           padding: const EdgeInsets.symmetric(vertical: 20),
                           child: Center(
                             child: ElevatedButton(
-                              onPressed: _saveDailyIntake,
-                              child: Text('Save Daily Intake'),
+                              onPressed: _saveDailyFoodIntake,
+                              child: Text('Save Daily Food Intake'),
                               style: ElevatedButton.styleFrom(
                                 foregroundColor: Colors.white,
                                 backgroundColor: Colors.blue, // Text color
@@ -440,6 +493,24 @@ class _HomeTabState extends State<HomeTab> {
                               waterConsumed = value;
                             });
                           },
+                        ),
+
+                        SizedBox(height: 10),
+
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Center(
+                            child: ElevatedButton(
+                              onPressed: _saveDailyWaterIntake,
+                              child: Text('Save Daily Water Intake'),
+                              style: ElevatedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.blue,
+                                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
                         ),
 
                         SizedBox(height: 20),
