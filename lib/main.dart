@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Personalized Diet Plan'),
+        title: Text('Personalized Diet Planner'),
         bottom: TabBar(
           controller: _tabController,
           tabs: [

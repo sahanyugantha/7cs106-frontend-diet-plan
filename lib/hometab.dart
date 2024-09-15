@@ -30,14 +30,22 @@ class _HomeTabState extends State<HomeTab> {
   double dinnerCalories = 0.0;
   double otherCalories = 0.0;
 
-  double waterConsumed = 0.0;
+  double waterIntakeML = 0.0;
 
   final picker = ImagePicker();
+
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _loadInitialData();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose(); // Dispose the controller when done
+    super.dispose();
   }
 
   Future<void> _loadInitialData() async {
@@ -48,7 +56,7 @@ class _HomeTabState extends State<HomeTab> {
         lunchCalories = recommendations['lunchCalories']?.toDouble() ?? 0.0;
         dinnerCalories = recommendations['dinnerCalories']?.toDouble() ?? 0.0;
         otherCalories = recommendations['otherCalories']?.toDouble() ?? 0.0;
-        waterConsumed = recommendations['waterConsumed']?.toDouble() ?? 0.0;
+        waterIntakeML = recommendations['waterConsumed']?.toDouble() ?? 0.0;
       });
     } catch (e) {
       print('Error loading initial data: $e');
@@ -294,11 +302,11 @@ class _HomeTabState extends State<HomeTab> {
 
   Future<void> _saveDailyWaterIntake() async {
     // Prepare the URL
-    final url = Uri.parse('${Config.baseUrl}/api/v1/daily-consumption/1/meal-calories');
+    final url = Uri.parse('${Config.baseUrl}/api/v1/daily-consumption/1/water-intake');
 
     // Prepare the request body
     final requestBody = jsonEncode({
-      'waterIntake': waterConsumed,
+      'waterIntake': waterIntakeML,
     });
 
     try {
@@ -324,443 +332,448 @@ class _HomeTabState extends State<HomeTab> {
   }
 
 
-
   @override
   Widget build(BuildContext context) {
-
     double totalCalories = breakfastCalories + lunchCalories + dinnerCalories + otherCalories;
 
+    final PageStorageBucket bucket = PageStorageBucket();
+
     return Scaffold(
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: fetchRecommendations(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData) {
-            return Center(child: Text('No data available'));
-          } else {
-            final data = snapshot.data!;
-            final username = data['username'];
-            final caloriesGoal = data['caloriesGoal'] / 1000;
-            final waterGoal = data['waterGoal'];
-            final caloriesConsumed = data['caloriesConsumed'] / 1000;
-            final caloriesNeeded = data['caloriesLeft'] / 1000;
-            waterConsumed = data['waterConsumed']?.toDouble() ?? 0.0;
-            final waterLeft = data['waterLeft']?.toDouble() ?? 0.0;
-            final weight = data['weight']?.toDouble() ?? 0.0;
-            final height = data['height']?.toDouble() ?? 0.0;
+      body: PageStorage(
+        bucket: bucket,
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: fetchRecommendations(),
+          builder: (context, snapshot) {
+            // Your FutureBuilder logic here
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else if (!snapshot.hasData) {
+              return Center(child: Text('No data available'));
+            } else {
+              final data = snapshot.data!;
+              final username = data['username'];
+              final caloriesGoal = data['caloriesGoal'] / 1000;
+              final waterGoal = data['waterGoal'];
+              final caloriesConsumed = data['caloriesConsumed'] / 1000;
+              final caloriesNeeded = data['caloriesLeft'] / 1000;
+              final waterConsumed = data['waterConsumed']?.toDouble() ?? 0.0;
+              final waterLeft = data['waterLeft']?.toDouble() ?? 0.0;
+              final weight = data['weight']?.toDouble() ?? 0.0;
+              final height = data['height']?.toDouble() ?? 0.0;
 
-            double bmi = calculateBMI(weight, height);
-            String bmiCategory = determineBMICategory(bmi);
+              double bmi = calculateBMI(weight, height);
+              String bmiCategory = determineBMICategory(bmi);
 
-            return CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.all(16.0),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate(
-                      [
-                        Text(
-                          '${getGreeting()}, $username!',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 20),
-
-                        // Food Intake Section
-                        Text(
-                          'Daily Food Intake',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 10),
-
-                        // Breakfast Slider
-                        _buildCustomSlider(
-                          context,
-                          label: 'Breakfast',
-                          unit: ' kcal',
-                          value: breakfastCalories,
-                          max: caloriesGoal,
-                          gradientColors: [Colors.green, Colors.teal],
-                          onChanged: (value) {
-                            setState(() {
-                              breakfastCalories = value;
-                            });
-                          },
-                        ),
-                        ElevatedButton(
-                          onPressed: () => _showPhotoSourceDialog('breakfast'),
-                          child: Text('Add Breakfast Photo'),
-                        ),
-
-                        // Lunch Slider
-                        _buildCustomSlider(
-                          context,
-                          label: 'Lunch',
-                          unit: ' kcal',
-                          value: lunchCalories,
-                          max: caloriesGoal,
-                          gradientColors: [Colors.orange, Colors.red],
-                          onChanged: (value) {
-                            setState(() {
-                              lunchCalories = value;
-                            });
-                          },
-                        ),
-                        ElevatedButton(
-                          onPressed: () => _showPhotoSourceDialog('lunch'),
-                          child: Text('Add Lunch Photo'),
-                        ),
-
-                        // Dinner Slider
-                        _buildCustomSlider(
-                          context,
-                          label: 'Dinner',
-                          unit: ' kcal',
-                          value: dinnerCalories,
-                          max: caloriesGoal,
-                          gradientColors: [Colors.purple, Colors.pink],
-                          onChanged: (value) {
-                            setState(() {
-                              dinnerCalories = value;
-                            });
-                          },
-                        ),
-                        ElevatedButton(
-                          onPressed: () => _showPhotoSourceDialog('dinner'),
-                          child: Text('Add Dinner Photo'),
-                        ),
-
-                        // Other Food Intake Slider
-                        _buildCustomSlider(
-                          context,
-                          label: 'Other',
-                          unit: ' kcal',
-                          value: otherCalories,
-                          max: caloriesGoal,
-                          gradientColors: [Colors.blue, Colors.indigo],
-                          onChanged: (value) {
-                            setState(() {
-                              otherCalories = value;
-                            });
-                          },
-                        ),
-                        ElevatedButton(
-                          onPressed: () => _showPhotoSourceDialog('other'),
-                          child: Text('Add Other Photo'),
-                        ),
-
-                        SizedBox(height: 10),
-                        // Save Button
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 20),
-                          child: Center(
-                            child: ElevatedButton(
-                              onPressed: _saveDailyFoodIntake,
-                              child: Text('Save Daily Food Intake'),
-                              style: ElevatedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                backgroundColor: Colors.blue, // Text color
-                                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                            ),
+              return CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.all(16.0),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate(
+                        [
+                          Text(
+                            '${getGreeting()}, $username!',
+                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                           ),
-                        ),
+                          SizedBox(height: 20),
 
-                        SizedBox(height: 20),
-
-                        // Water Intake Section
-                        Text(
-                          'Daily Water Intake',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 10),
-
-                        // Water Intake Slider
-                        _buildCustomSlider(
-                          context,
-                          label: 'Water Intake (Liters)',
-                          unit: ' L',
-                          value: waterConsumed,
-                          max: waterGoal,
-                          gradientColors: [Colors.lightBlue, Colors.blue],
-                          onChanged: (value) {
-                            setState(() {
-                              waterConsumed = value;
-                            });
-                          },
-                        ),
-
-                        SizedBox(height: 10),
-
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 20),
-                          child: Center(
-                            child: ElevatedButton(
-                              onPressed: _saveDailyWaterIntake,
-                              child: Text('Save Daily Water Intake'),
-                              style: ElevatedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                backgroundColor: Colors.blue,
-                                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                            ),
+                          // Food Intake Section
+                          Text(
+                            'Daily Food Intake',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
                           ),
-                        ),
+                          SizedBox(height: 10),
 
-                        SizedBox(height: 20),
-
-                        // Title for the Pie Chart
-                        Text(
-                          'Calorie Distribution',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 10),
-
-                        // Calorie Goal and Remaining Calories
-                        Container(
-                          padding: EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 5,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
+                          // Breakfast Slider
+                          _buildCustomSlider(
+                            context,
+                            label: 'Breakfast',
+                            unit: ' kcal',
+                            value: breakfastCalories,
+                            max: caloriesGoal,
+                            gradientColors: [Colors.green, Colors.teal],
+                            onChanged: (value) {
+                              setState(() {
+                                breakfastCalories = value;
+                              });
+                            },
                           ),
-                          child: Column(
-                            children: [
-                              Text(
-                                'Calorie Goal: ${caloriesGoal.toStringAsFixed(1)} kcal',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.center,
-                              ),
-                              Text(
-                                'Total Calories Consumed: ${(breakfastCalories + lunchCalories + dinnerCalories + otherCalories).toStringAsFixed(1)} kcal',
-                                style: TextStyle(fontSize: 16),
-                                textAlign: TextAlign.center,
-                              ),
-                              SizedBox(height: 10),
-                              Text(
-                                'Calories Remaining: ${(caloriesGoal - (breakfastCalories + lunchCalories + dinnerCalories + otherCalories)).toStringAsFixed(1)} kcal',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: (caloriesGoal - (breakfastCalories + lunchCalories + dinnerCalories + otherCalories)) < 0
-                                      ? Colors.red
-                                      : Colors.green,
+                          ElevatedButton(
+                            onPressed: () => _showPhotoSourceDialog('breakfast'),
+                            child: Text('Add Breakfast Photo'),
+                          ),
+
+                          // Lunch Slider
+                          _buildCustomSlider(
+                            context,
+                            label: 'Lunch',
+                            unit: ' kcal',
+                            value: lunchCalories,
+                            max: caloriesGoal,
+                            gradientColors: [Colors.orange, Colors.red],
+                            onChanged: (value) {
+                              setState(() {
+                                lunchCalories = value;
+                              });
+                            },
+                          ),
+                          ElevatedButton(
+                            onPressed: () => _showPhotoSourceDialog('lunch'),
+                            child: Text('Add Lunch Photo'),
+                          ),
+
+                          // Dinner Slider
+                          _buildCustomSlider(
+                            context,
+                            label: 'Dinner',
+                            unit: ' kcal',
+                            value: dinnerCalories,
+                            max: caloriesGoal,
+                            gradientColors: [Colors.purple, Colors.pink],
+                            onChanged: (value) {
+                              setState(() {
+                                dinnerCalories = value;
+                              });
+                            },
+                          ),
+                          ElevatedButton(
+                            onPressed: () => _showPhotoSourceDialog('dinner'),
+                            child: Text('Add Dinner Photo'),
+                          ),
+
+                          // Other Food Intake Slider
+                          _buildCustomSlider(
+                            context,
+                            label: 'Other',
+                            unit: ' kcal',
+                            value: otherCalories,
+                            max: caloriesGoal,
+                            gradientColors: [Colors.blue, Colors.indigo],
+                            onChanged: (value) {
+                              // setState(() {
+                              //   otherCalories = value;
+                              // });
+                                otherCalories = value;
+                            },
+                          ),
+                          ElevatedButton(
+                            onPressed: () => _showPhotoSourceDialog('other'),
+                            child: Text('Add Other Photo'),
+                          ),
+
+                          SizedBox(height: 10),
+                          // Save Button
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            child: Center(
+                              child: ElevatedButton(
+                                onPressed: _saveDailyFoodIntake,
+                                child: Text('Save Daily Food Intake'),
+                                style: ElevatedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: Colors.blue, // Text color
+                                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                  textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
-                                textAlign: TextAlign.center,
                               ),
-                              if (caloriesGoal - (breakfastCalories + lunchCalories + dinnerCalories + otherCalories) < 0)
+                            ),
+                          ),
+
+                          SizedBox(height: 20),
+
+                          // Water Intake Section
+                          Text(
+                            'Daily Water Intake',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 10),
+
+                          // Water Intake Slider
+                          _buildCustomSlider(
+                            context,
+                            label: 'Water Intake (Milliliters)',
+                            unit: ' ml',
+                            value: waterIntakeML,
+                            max: waterGoal,
+                            gradientColors: [Colors.lightBlue, Colors.blue],
+                            onChanged: (value) {
+                              setState(() {
+                                waterIntakeML = value;
+                              });
+                              //waterConsumed = value;
+                            },
+                          ),
+
+                          SizedBox(height: 10),
+
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            child: Center(
+                              child: ElevatedButton(
+                                onPressed: _saveDailyWaterIntake,
+                                child: Text('Save Daily Water Intake'),
+                                style: ElevatedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: Colors.blue,
+                                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                  textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(height: 20),
+
+                          // Title for the Pie Chart
+                          Text(
+                            'Calorie Distribution',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 10),
+
+                          // Calorie Goal and Remaining Calories
+                          Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 5,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
                                 Text(
-                                  'You have exceeded your calorie goal by ${((breakfastCalories + lunchCalories + dinnerCalories + otherCalories) - caloriesGoal).toStringAsFixed(1)} kcal',
-                                  style: TextStyle(fontSize: 16, color: Colors.red),
+                                  'Calorie Goal: ${caloriesGoal.toStringAsFixed(1)} kcal',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                   textAlign: TextAlign.center,
                                 ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 20),
-
-
-                        // Pie Chart
-                        Container(
-                          height: 300,
-                          child: Card(
-                            elevation: 5,
-                            margin: EdgeInsets.symmetric(horizontal: 10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                                Text(
+                                  'Total Calories Consumed: ${(breakfastCalories + lunchCalories + dinnerCalories + otherCalories).toStringAsFixed(1)} kcal',
+                                  style: TextStyle(fontSize: 16),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  'Calories Remaining: ${(caloriesGoal - (breakfastCalories + lunchCalories + dinnerCalories + otherCalories)).toStringAsFixed(1)} kcal',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: (caloriesGoal - (breakfastCalories + lunchCalories + dinnerCalories + otherCalories)) < 0
+                                        ? Colors.red
+                                        : Colors.green,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                if (caloriesGoal - (breakfastCalories + lunchCalories + dinnerCalories + otherCalories) < 0)
+                                  Text(
+                                    'You have exceeded your calorie goal by ${((breakfastCalories + lunchCalories + dinnerCalories + otherCalories) - caloriesGoal).toStringAsFixed(1)} kcal',
+                                    style: TextStyle(fontSize: 16, color: Colors.red),
+                                    textAlign: TextAlign.center,
+                                  ),
+                              ],
                             ),
-                            child: PieChart(
-                              PieChartData(
-                                sections: [
-                                  PieChartSectionData(
-                                    value: breakfastCalories,
-                                    color: Colors.green,
-                                    title: '${_calculatePercentage(breakfastCalories, totalCalories)}%',
-                                    titleStyle: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  PieChartSectionData(
-                                    value: lunchCalories,
-                                    color: Colors.orange,
-                                    title: '${_calculatePercentage(lunchCalories, totalCalories)}%',
-                                    titleStyle: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  PieChartSectionData(
-                                    value: dinnerCalories,
-                                    color: Colors.purple,
-                                    title: '${_calculatePercentage(dinnerCalories, totalCalories)}%',
-                                    titleStyle: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  PieChartSectionData(
-                                    value: otherCalories,
-                                    color: Colors.blue,
-                                    title: '${_calculatePercentage(otherCalories, totalCalories)}%',
-                                    titleStyle: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                                borderData: FlBorderData(show: false),
-                                sectionsSpace: 0,
-                                centerSpaceRadius: 80,
-                                startDegreeOffset: 270,
+                          ),
+                          SizedBox(height: 20),
+
+                          // Pie Chart
+                          Container(
+                            height: 300,
+                            child: Card(
+                              elevation: 5,
+                              margin: EdgeInsets.symmetric(horizontal: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 20),
-
-                        // Legend Below Pie Chart
-                        _buildLegend(
-                          label: 'Breakfast',
-                          color: Colors.green,
-                          value: breakfastCalories,
-                        ),
-                        _buildLegend(
-                          label: 'Lunch',
-                          color: Colors.orange,
-                          value: lunchCalories,
-                        ),
-                        _buildLegend(
-                          label: 'Dinner',
-                          color: Colors.purple,
-                          value: dinnerCalories,
-                        ),
-                        _buildLegend(
-                          label: 'Other',
-                          color: Colors.blue,
-                          value: otherCalories,
-                        ),
-
-
-                        SizedBox(height: 20),
-
-                        WaterGlassIndicator(waterConsumedPercentage: waterConsumed / (waterConsumed + waterLeft)),
-
-                        SizedBox(height: 20),
-                        // BMI Gauge
-                        Text(
-                          'BMI: ${bmi.toStringAsFixed(1)} ($bmiCategory)',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 10),
-                        Container(
-                          height: 200,
-                          child: SfRadialGauge(
-                            axes: <RadialAxis>[
-                              RadialAxis(
-                                minimum: 0,
-                                maximum: 40,
-                                pointers: <GaugePointer>[
-                                  NeedlePointer(
-                                    value: bmi,
-                                    enableAnimation: true,
-                                    animationType: AnimationType.ease,
-                                    needleColor: Colors.blue,
-                                  ),
-                                ],
-                                ranges: <GaugeRange>[
-                                  GaugeRange(
-                                    startValue: 0,
-                                    endValue: 18.5,
-                                    color: Colors.blue.withOpacity(0.5),
-                                    startWidth: 10,
-                                    endWidth: 10,
-                                  ),
-                                  GaugeRange(
-                                    startValue: 18.5,
-                                    endValue: 25,
-                                    color: Colors.green.withOpacity(0.5),
-                                    startWidth: 10,
-                                    endWidth: 10,
-                                  ),
-                                  GaugeRange(
-                                    startValue: 25,
-                                    endValue: 30,
-                                    color: Colors.yellow.withOpacity(0.5),
-                                    startWidth: 10,
-                                    endWidth: 10,
-                                  ),
-                                  GaugeRange(
-                                    startValue: 30,
-                                    endValue: 40,
-                                    color: Colors.red.withOpacity(0.5),
-                                    startWidth: 10,
-                                    endWidth: 10,
-                                  ),
-                                ],
-                                axisLabelStyle: GaugeTextStyle(fontSize: 12),
-                                annotations: <GaugeAnnotation>[
-                                  GaugeAnnotation(
-                                    widget: Container(
-                                      child: Text(
-                                        '${bmi.toStringAsFixed(1)}',
-                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              child: PieChart(
+                                PieChartData(
+                                  sections: [
+                                    PieChartSectionData(
+                                      value: breakfastCalories,
+                                      color: Colors.green,
+                                      title: '${_calculatePercentage(breakfastCalories, totalCalories)}%',
+                                      titleStyle: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
                                       ),
                                     ),
-                                    angle: 90,
-                                    positionFactor: 0.5,
-                                  ),
-                                ],
+                                    PieChartSectionData(
+                                      value: lunchCalories,
+                                      color: Colors.orange,
+                                      title: '${_calculatePercentage(lunchCalories, totalCalories)}%',
+                                      titleStyle: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    PieChartSectionData(
+                                      value: dinnerCalories,
+                                      color: Colors.purple,
+                                      title: '${_calculatePercentage(dinnerCalories, totalCalories)}%',
+                                      titleStyle: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    PieChartSectionData(
+                                      value: otherCalories,
+                                      color: Colors.blue,
+                                      title: '${_calculatePercentage(otherCalories, totalCalories)}%',
+                                      titleStyle: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                  borderData: FlBorderData(show: false),
+                                  sectionsSpace: 0,
+                                  centerSpaceRadius: 80,
+                                  startDegreeOffset: 270,
+                                ),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 20),
+                          SizedBox(height: 20),
 
-                        // Recommendations Section
-                        Text(
-                          'Recommendations',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          '1. Maintain a balanced diet and avoid excessive intake of calories.',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        Text(
-                          '2. Regular exercise is essential for maintaining a healthy BMI.',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        Text(
-                          '3. Drink at least 2 liters of water daily to stay hydrated.',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ],
+                          // Legend Below Pie Chart
+                          _buildLegend(
+                            label: 'Breakfast',
+                            color: Colors.green,
+                            value: breakfastCalories,
+                          ),
+                          _buildLegend(
+                            label: 'Lunch',
+                            color: Colors.orange,
+                            value: lunchCalories,
+                          ),
+                          _buildLegend(
+                            label: 'Dinner',
+                            color: Colors.purple,
+                            value: dinnerCalories,
+                          ),
+                          _buildLegend(
+                            label: 'Other',
+                            color: Colors.blue,
+                            value: otherCalories,
+                          ),
+
+                          SizedBox(height: 20),
+
+                          WaterGlassIndicator(waterConsumedPercentage: waterIntakeML / waterGoal),
+
+                          SizedBox(height: 20),
+                          // BMI Gauge
+                          Text(
+                            'BMI: ${bmi.toStringAsFixed(1)} ($bmiCategory)',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 10),
+                          Container(
+                            height: 200,
+                            child: SfRadialGauge(
+                              axes: <RadialAxis>[
+                                RadialAxis(
+                                  minimum: 0,
+                                  maximum: 40,
+                                  pointers: <GaugePointer>[
+                                    NeedlePointer(
+                                      value: bmi,
+                                      enableAnimation: true,
+                                      animationType: AnimationType.ease,
+                                      needleColor: Colors.blue,
+                                    ),
+                                  ],
+                                  ranges: <GaugeRange>[
+                                    GaugeRange(
+                                      startValue: 0,
+                                      endValue: 18.5,
+                                      color: Colors.blue.withOpacity(0.5),
+                                      startWidth: 10,
+                                      endWidth: 10,
+                                    ),
+                                    GaugeRange(
+                                      startValue: 18.5,
+                                      endValue: 25,
+                                      color: Colors.green.withOpacity(0.5),
+                                      startWidth: 10,
+                                      endWidth: 10,
+                                    ),
+                                    GaugeRange(
+                                      startValue: 25,
+                                      endValue: 30,
+                                      color: Colors.yellow.withOpacity(0.5),
+                                      startWidth: 10,
+                                      endWidth: 10,
+                                    ),
+                                    GaugeRange(
+                                      startValue: 30,
+                                      endValue: 40,
+                                      color: Colors.red.withOpacity(0.5),
+                                      startWidth: 10,
+                                      endWidth: 10,
+                                    ),
+                                  ],
+                                  axisLabelStyle: GaugeTextStyle(fontSize: 12),
+                                  annotations: <GaugeAnnotation>[
+                                    GaugeAnnotation(
+                                      widget: Container(
+                                        child: Text(
+                                          '${bmi.toStringAsFixed(1)}',
+                                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      angle: 90,
+                                      positionFactor: 0.5,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 20),
+
+                          // Recommendations Section
+                          Text(
+                            'Recommendations',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 10),
+                          Text(
+                            '1. Maintain a balanced diet and avoid excessive intake of calories.',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          Text(
+                            '2. Regular exercise is essential for maintaining a healthy BMI.',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          Text(
+                            '3. Drink at least 2 liters of water daily to stay hydrated.',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            );
-          }
-        },
+                ],
+              );
+            }
+          },
+        ),
       ),
     );
   }
