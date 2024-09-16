@@ -13,6 +13,8 @@ class _ProfileTabState extends State<ProfileTab> {
   final TextEditingController _heightController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
   final TextEditingController _dietController = TextEditingController();
+  final TextEditingController _hipCircumferenceController = TextEditingController();
+  final TextEditingController _waistCircumferenceController = TextEditingController();
 
   String? _selectedGender;
   XFile? _profileImage;
@@ -68,6 +70,28 @@ class _ProfileTabState extends State<ProfileTab> {
               ),
               SizedBox(height: 20),
 
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(labelText: 'Gender'),
+                value: _selectedGender,
+                items: ['Male', 'Female', 'Other']
+                    .map((label) => DropdownMenuItem(
+                  child: Text(label),
+                  value: label,
+                ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedGender = value;
+                  });
+                },
+                validator: (value) {
+                  if (value == null) {
+                    return 'Please select your gender';
+                  }
+                  return null;
+                },
+              ),
+
               // Height input
               TextFormField(
                 controller: _heightController,
@@ -91,30 +115,31 @@ class _ProfileTabState extends State<ProfileTab> {
                 validator: (value) => _validateInput(value, 'Dietary Preferences'),
               ),
 
-              SizedBox(height: 20),
-
-              // Gender selection
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(labelText: 'Gender'),
-                value: _selectedGender,
-                items: ['Male', 'Female', 'Other']
-                    .map((label) => DropdownMenuItem(
-                  child: Text(label),
-                  value: label,
-                ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedGender = value;
-                  });
-                },
+              TextFormField(
+                controller: _hipCircumferenceController,
+                decoration: InputDecoration(labelText: 'Hip Circumference (cm)'),
+                keyboardType: TextInputType.number,
                 validator: (value) {
-                  if (value == null) {
-                    return 'Please select your gender';
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your hip circumference';
                   }
                   return null;
                 },
               ),
+              TextFormField(
+                controller: _waistCircumferenceController,
+                decoration: InputDecoration(labelText: 'Waist Circumference (cm)'),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your waist circumference';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+
+
 
               SizedBox(height: 20),
 
@@ -142,6 +167,8 @@ class _ProfileTabState extends State<ProfileTab> {
     _heightController.dispose();
     _weightController.dispose();
     _dietController.dispose();
+    _waistCircumferenceController.dispose();
+    _hipCircumferenceController.dispose();
     super.dispose();
   }
 }
